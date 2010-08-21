@@ -7,22 +7,32 @@ use Any::Moose;
 use XML::Simple ();
 
 
-our $VERSION = '0.09';
-
-has id              => ( is => 'rw', isa => 'Str' );
+# Properties that can be updated in existing entries.
 has title           => ( is => 'rw', isa => 'Str' );
 has content         => ( is => 'rw', isa => 'Str' );
-has author          => ( is => 'rw', isa => 'Str' );
-has published       => ( is => 'rw', isa => 'Str' );
-has updated         => ( is => 'rw', isa => 'Str' );
-has edit_url        => ( is => 'rw', isa => 'Str' );
-has id_url          => ( is => 'rw', isa => 'Str' );
-has public_url      => ( is => 'rw', isa => 'Str' );
-has source_xml_tree => ( is => 'rw', isa => 'HashRef', default => sub { {} }, required => 1 );
 has categories      => ( is => 'rw', isa => 'ArrayRef[Str]', auto_deref => 1 );
-has blog            => ( is => 'rw', isa => 'WebService::Blogger::Blog', required => 1 );
 
+# Read-only properties.
+has id              => ( is => 'ro', isa => 'Str' );
+has author          => ( is => 'ro', isa => 'Str' );
+has published       => ( is => 'ro', isa => 'Str' );
+has updated         => ( is => 'ro', isa => 'Str' );
+has edit_url        => ( is => 'ro', isa => 'Str' );
+has id_url          => ( is => 'ro', isa => 'Str' );
+has public_url      => ( is => 'ro', isa => 'Str' );
+
+# Service properties.
+has source_xml_tree => ( is => 'ro', isa => 'HashRef', default => sub { {} }, required => 1 );
+has blog            => ( is => 'ro', isa => 'WebService::Blogger::Blog', required => 1 );
+
+
+# Speed Moose up.
 __PACKAGE__->meta->make_immutable;
+
+our $VERSION = '0.10';
+
+# Value of xmlns attribute in root element of created Atom entries.
+my $xml_ns_attr = 'http://www.w3.org/2005/Atom';
 
 
 sub BUILDARGS {
@@ -30,27 +40,20 @@ sub BUILDARGS {
     my $class = shift;
     my %params = @_;
 
-    my $attrs = $class->source_xml_tree_to_attrs($params{source_xml_tree})
-        if $params{source_xml_tree};
-
-    $attrs->{$_} = $params{$_} foreach keys %params;
-    return $attrs;
-}
-
-
-sub source_xml_tree_to_attrs {
-    ## Returns hash of attributes extracted from XML tree.
-    my $class = shift;
-    my ($tree) = @_;
+    # Use shorter name for clarity.
+    my $tree = $params{source_xml_tree};
 
     my $get_link_by_rel = sub {
-        ## Returns value for 'href' attribute for link with given 'ref' attribute, if it's present.
+        ## Returns value for 'href' attribute for link with given
+        ## 'ref' attribute, if it's present.
         my ($rel_value) = @_;
 
         my ($link) = grep $_->{rel} eq $rel_value, @{ $tree->{link} };
         return $link->{href} if $link;
      };
 
+    # Extract attributes from the XML tree and return the to be set as
+    # attributes.
     return {
         id         => $tree->{id}[0],
         author     => $tree->{author}[0]{name}[0],
@@ -62,22 +65,38 @@ sub source_xml_tree_to_attrs {
         id_url     => $get_link_by_rel->('self'),
         edit_url   => $get_link_by_rel->('edit'),
         categories => [ map $_->{term}, @{ $tree->{category} || [] } ],
+        %params,
     };
 }
 
 
-sub update_from_http_response {
-    ## Updates entry internal structures from given HTTP
-    ## response. Used to update entry after it's been created on the
-    ## server.
-    my $self = shift;
-    my ($response) = @_;
+sub xml_for_creation {
+    ## Class method. Returns XML for creation of a new entry with given properties.
+    my $class = shift;
+    my %props = @_;
 
-    my $xml_tree = XML::Simple::XMLin($response->content, ForceArray => 1);
-    $self->source_xml_tree($xml_tree);
+    # Build data structure to generate XML from.
+    my %xml_tree = (
+        xmlns => $xml_ns_attr,
+        title => [ {
+            content => $props{title},
+            type    => 'text',
+        } ],
+        content => [ {
+            content => $props{content},
+            type    => 'html',
+        } ],
+        category => [
+            map {
+                    scheme => 'http://www.blogger.com/atom/ns#',
+                    term   => $_,
+                },
+                @{ $props{categories} || [] }
+        ],
+    );
 
-    my $new_attrs = $self->source_xml_tree_to_attrs($xml_tree);
-    $self->$_($new_attrs->{$_}) foreach keys %$new_attrs;
+    # Convert data tree to XML.
+    return XML::Simple::XMLout(\%xml_tree, RootName => 'entry');
 }
 
 
@@ -86,7 +105,7 @@ sub as_xml {
     my $self = shift;
 
     # Add namespace specifiers to the root element, which appears to be undocumented requirement.
-    $self->source_xml_tree->{xmlns} = 'http://www.w3.org/2005/Atom';
+    $self->source_xml_tree->{xmlns} = $xml_ns_attr;
     $self->source_xml_tree->{'xmlns:thr'} = 'http://purl.org/rss/1.0/modules/threading/' if $self->id;
 
     # Place attribute values into original data tree. Don't generate an Atom entry anew as
@@ -116,15 +135,9 @@ sub save {
     ## Saves the entry to blogger.
     my $self = shift;
 
-    if ($self->id) {
-        # Update the entry.
-        my $response = $self->blog->blogger->http_put($self->edit_url => $self->as_xml);
-        die 'Unable to save entry: ' . $response->status_line unless $response->is_success;
-    }
-    else {
-        # Create new entry.
-        $self->blog->add_entry($self);
-    }
+    my $response = $self->blog->blogger->http_put($self->edit_url => $self->as_xml);
+    die 'Unable to save entry: ' . $response->status_line unless $response->is_success;
+    return $response;
 }
 
 
@@ -294,10 +307,6 @@ L<http://cpanratings.perl.org/d/WebService-Blogger>
 L<http://search.cpan.org/dist/WebService-Blogger/>
 
 =back
-
-
-=head1 ACKNOWLEDGEMENTS
-
 
 =head1 LICENSE AND COPYRIGHT
 

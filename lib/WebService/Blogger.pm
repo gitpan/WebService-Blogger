@@ -7,36 +7,69 @@ use Any::Moose;
 use LWP::UserAgent;
 use HTTP::Request::Common;
 use XML::Simple;
+use File::stat;
 use Data::Dumper;
 
 use WebService::Blogger::Blog;
 
 
-our $VERSION = '0.09';
-
+# Authentication credentials. Cannot be changed after object is created.
 has login_id   => ( is => 'ro', isa => 'Str', required => 1 );
 has password   => ( is => 'ro', isa => 'Str', required => 1 );
 
+# Blogs belonging to the account.
 has blogs => (
-    is         => 'ro',
-    isa        => 'ArrayRef[WebService::Blogger::Blog]',
-    lazy_build => 1,
-    auto_deref => 1,
+    is            => 'ro',
+    isa           => 'ArrayRef[WebService::Blogger::Blog]',
+    lazy_build    => 1,
+    auto_deref    => 1,
 );
 
+# LWP:::UserAgent instance for all requests during the session.
 has ua => (
-    builder    => sub { LWP::UserAgent->new },
-    lazy_build => 1,
-    is         => 'ro',
+    builder       => sub { LWP::UserAgent->new },
+    lazy_build    => 1,
+    is            => 'ro',
 );
 
+# Speed Moose up.
 __PACKAGE__->meta->make_immutable;
+
+our $VERSION = '0.10';
+
+
+sub BUILDARGS {
+    ## Loads credentials from ~/.www_blogger_rc
+    my $class = shift;
+
+    # See if there's a file with login credentials and return if not.
+    my $creds_file_name = $class->creds_file_name;
+    return unless -s $creds_file_name;
+
+    # Don't allow it to be readable or writable by others, for security reasons.
+    die "$creds_file_name is accessible by others. Please run chmod 0600 $creds_file_name"
+        if stat($creds_file_name)->mode & 07777 != 0600;
+
+    # Read file contents into a string.
+    open my $creds_fh, '<', $creds_file_name
+        or die "Unable to read login credentials from $creds_file_name: $!";
+    my $creds_file_contents = join '', <$creds_fh>;
+    close $creds_fh;
+
+    # Parse and return available credentials to be set as object attributes.
+    my %attrs;
+    my %parsed_creds = $creds_file_contents =~ /^(\S+)\s*=\s*(\S+)/gm;
+    $attrs{login_id} = $parsed_creds{username} if defined $parsed_creds{username};
+    $attrs{password} = $parsed_creds{password} if defined $parsed_creds{password};
+    return \%attrs;
+}
 
 
 sub BUILD {
     ## Authenticates with Blogger.
     my $self = shift;
 
+    # Submit request fore authentiaction token.
     my $response = $self->ua->post(
         'https://www.google.co.uk/accounts/ClientLogin',
         {
@@ -46,16 +79,28 @@ sub BUILD {
         }
     );
 
+    # Check success, parsing Google error message, if available.
     unless ($response->is_success) {
         my $error_msg = ($response->content =~ /\bError=(.+)/)[0] || 'Google error message unavailable';
         die 'HTTP error when trying to authenticate: ' . $response->status_line . " ($error_msg)";
     }
 
+    # Parse authentication token and set it as default header for user agent object.
     my ($auth_token) = $response->content =~ /\bAuth=(.+)/
         or die 'Authentication token not found in the response: ' . $response->content;
-
     $self->ua->default_header(Authorization => "GoogleLogin auth=$auth_token");
+
+    # Set default content type for all requests.
     $self->ua->default_header(Content_Type => 'application/atom+xml');
+}
+
+
+sub creds_file_name {
+    ## Class method. Returns name of optional file with login credentials.
+    my $self = shift;
+
+    # Use the same name and format as WWW::Blogger::XML::API, for compatibility.
+    return "$ENV{HOME}/.www_blogger_rc";
 }
 
 
@@ -63,9 +108,11 @@ sub _build_blogs {
     ## Populates 'blogs' property with list of instances of WebService::Blogger::Blog.
     my $self = shift;
 
+    # Get list of blogs.
     my $response = $self->http_get('http://www.blogger.com/feeds/default/blogs');
     my $response_tree = XML::Simple::XMLin($response->content, ForceArray => 1);
 
+    # Populate the accessor with blog objects generated from the list.
     return [
         map WebService::Blogger::Blog->new(
                 source_xml_tree => $_,
@@ -77,7 +124,7 @@ sub _build_blogs {
 
 
 sub http_put {
-    ## Executes a PUT request using configured user agent instance.
+    ## Executes a PUT request to the service.
     my $self = shift;
     my ($url, $content) = @_;
 
@@ -87,7 +134,7 @@ sub http_put {
 
 
 sub http_get {
-    ## Executes a GET request.
+    ## Executes a GET request to the service.
     my $self = shift;
     my @req_args = @_;
 
@@ -96,12 +143,15 @@ sub http_get {
 
 
 sub http_post {
-    ## Executes a POST request.
+    ## Executes a POST request to the service.
     my $self = shift;
     my @args = @_;
 
     return $self->ua->request(HTTP::Request::Common::POST(@args));
 }
+
+
+1;
 
 
 __END__
@@ -116,14 +166,12 @@ Version 0.09
 
 =cut
 
-1;
-
 =head1 SYNOPSIS
 
-This module suite provides interface to the Blogger service now run by
-Google. It's built in object-oriented fashion using Moose, which makes
+This module provides interface to the Blogger service now run by
+Google. It's built in object-oriented fashion with L<Moose>, which makes
 it easy to use and extend. It also utilizes newer style GData API for
-better compatibility. You can retrieve list of blogs for your account,
+better compatibility. You can retrieve list of blogs for an account,
 add, update or delete entries.
 
  use WebService::Blogger;
@@ -149,36 +197,41 @@ add, update or delete entries.
  $entry->categories([ qw/category1 category2/ ]);
  $entry->save;
 
- my $new_entry = WebService::Blogger::Blog::Entry->new(
+ my $new_entry = WebService::Blogger::Blog->add_entry(
      title   => 'New entry',
      content => 'New content',
      blog    => $blog,
  );
- $new_entry->save;
  $new_entry->delete;
 
 
-=head1 SUBROUTINES/METHODS
+=head1 METHODS
 
 =head2 new
-
-Creates a new instance of Blogger account object. This method will
-connect to the server and authenticate with the given credentials. 
-Authentication token received will be stored privately and used in
-all subsequent requests.
 
  my $blogger = WebService::Blogger->new(
      login_id   => 'myemail@gmail.com',
      password   => 'mypassword',
  );
 
+Connects to Blogger, authenticates and returns object representing
+Blogger account. The credentials can be given in named parameters or
+read from ~/.www_blogger_rc , which has contents like this:
+
+ username = someone@gmail.com
+ password = somepassword
+
+The file must not be accessible by anyone but the owner. Module will
+die with an error if it is. Authentication token received will be
+stored privately and used in all subsequent requests.
+
 =cut
 
 =head2 blogs
 
 Returns list of blogs for the account, as either array or array
-reference, depending on the context. The array is composed of
-instances of L<WebService::Blogger::Blog>.
+reference, depending on the context. Items are instances of
+L<WebService::Blogger::Blog>.
 
 =cut
 
@@ -190,7 +243,7 @@ Egor Shipovalov, C<< <kogdaugodno at gmail.com> >>
 
 Deletion of entries is currently not supported.
 
-Please report any bugs or feature requests to C<bug-net-google-api-blogger at rt.cpan.org>, or through
+Please report any bugs or feature requests to C<bug-webservice-blogger at rt.cpan.org>, or through
 the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=WebService-Blogger>.  I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
 

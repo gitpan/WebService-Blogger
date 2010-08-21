@@ -10,17 +10,21 @@ use URI::Escape ();
 use WebService::Blogger::Blog::Entry;
 
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
-has id              => ( is => 'ro', isa => 'Str', required => 1 );
-has numeric_id      => ( is => 'ro', isa => 'Str', required => 1 );
-has title           => ( is => 'rw', isa => 'Str', required => 1 );
-has public_url      => ( is => 'ro', isa => 'Str', required => 1 );
-has id_url          => ( is => 'ro', isa => 'Str', required => 1 );
-has post_url        => ( is => 'ro', isa => 'Str', required => 1 );
+# Blog properties, non-updatable.
+has id         => ( is => 'ro', isa => 'Str', required => 1 );
+has numeric_id => ( is => 'ro', isa => 'Str', required => 1 );
+has title      => ( is => 'ro', isa => 'Str', required => 1 );
+has public_url => ( is => 'ro', isa => 'Str', required => 1 );
+has id_url     => ( is => 'ro', isa => 'Str', required => 1 );
+has post_url   => ( is => 'ro', isa => 'Str', required => 1 );
+
+# Service attributes.
 has source_xml_tree => ( is => 'ro', isa => 'HashRef', required => 1 );
 has blogger         => ( is => 'ro', isa => 'WebService::Blogger', required => 1 );
 
+# Blog entries.
 has entries => (
     is         => 'rw',
     isa        => 'ArrayRef[WebService::Blogger::Blog::Entry]',
@@ -28,6 +32,7 @@ has entries => (
     auto_deref => 1,
 );
 
+# Speed Moose up.
 __PACKAGE__->meta->make_immutable;
 
 
@@ -36,9 +41,11 @@ sub BUILDARGS {
     my $class = shift;
     my %params = @_;
 
+    # Extract common values beforehand for convenience.
     my $id = $params{source_xml_tree}{id}[0];
     my $links = $params{source_xml_tree}{link};
 
+    # Extract attributes from XML tree and return them to be set in the instance.
     return {
         id         => $id,
         numeric_id => $id =~ /(\d+)$/,
@@ -115,21 +122,22 @@ sub search_entries {
 
 
 sub add_entry {
-    ## Adds given entry to the blog.
+    ## Adds new entry with specified properties to the blog and returns it.
     my $self = shift;
-    my ($entry) = @_;
+    my %params = @_;
 
+    # Get the XML for creation of new entry and post it to appropriate URL.
+    my $creation_xml = WebService::Blogger::Blog::Entry->xml_for_creation(%params);
     my $response = $self->blogger->http_post(
         $self->post_url,
         'Content-Type' => 'application/atom+xml',
-        Content        => $entry->as_xml,
+        Content        => $creation_xml,
     );
-
     die 'Unable to add entry to blog: ' . $response->status_line unless $response->is_success;
-    $entry->update_from_http_response($response);
 
-    push @{ $self->entries }, $entry;
-    return $entry;
+    # Create new entry object from the response.
+    my $xml_tree = XML::Simple::XMLin($response->content, ForceArray => 1);
+    return WebService::Blogger::Blog::Entry->new(source_xml_tree => $xml_tree, blog => $self);
 }
 
 
@@ -138,12 +146,14 @@ sub delete_entry {
     my $self = shift;
     my ($entry) = @_;
 
+    # Execute deletion request, with a workaround for proxies blocking DELETE method.
     my $response = $self->blogger->http_post(
         $entry->edit_url,
         'X-HTTP-Method-Override' => 'DELETE',
     );
     die 'Could not delete entry from server: ' . $response->status_line unless $response->is_success;
 
+    # Remove the entry from local list of entries.
     $self->entries([ grep $_ ne $entry, $self->entries ]);
 }
 
@@ -172,26 +182,22 @@ Please see L<WebService::Blogger>.
 
 =head1 DESCRIPTION
 
-This class represents a blog in WebService::Blogger package. As of
-present, you should never instantiate it directly. Only C<title>,
-C<public_url> and C<entries> attributes are for public use, other are
-subject to change in future versions.
+This class represents a blog in WebService::Blogger package, and is
+not designed to be instantiated directly.
 
 =head1 METHODS
 
-=head3 C<add_entry($entry)>
+=head3 C<add_entry(%properties)>
 
 =over
 
-Adds given entry to the blog. The argument must be an instance of WebService::Blogger::Blog::Entry
+Adds given entry to the blog:
 
-=back
-
-=head3 C<delete_entry($entry)>
-
-=over
-
-Deletes given entry from server as well as list of entries held in blog object.
+ my $new_entry = $blog->add_entry(
+     title      => 'New entry',
+     content    => 'New content',
+     categories => [ 'news', 'testing', 'perl examples' ],
+ );
 
 =back
 
@@ -199,8 +205,8 @@ Deletes given entry from server as well as list of entries held in blog object.
 
 =over
 
-Returns entries matching specified conditions. The following example
-contains all possible search criteria:
+Returns entries matching specified criteria. The following example
+contains all possible search conditions:
 
 my @entries = $blog->search_entries(
      published_min => '2010-08-10T23:25:00+04:00'
@@ -210,7 +216,7 @@ my @entries = $blog->search_entries(
      order_by      => 'start_time', # can also be: 'last_modified' or 'updated'
      max_results   => 20,
      offset        => 10,           # skip first 10 entries
- );
+);
 
 =back
 
@@ -225,6 +231,23 @@ garbage-collected.
 =back
 
 =head1 ATTRIBUTES
+
+=head3 C<id>
+
+=over
+
+Unique ID of the blog, a string in Blogger-specific format as present
+in the Atom entry.
+
+=back
+
+=head3 C<numeric_id>
+
+=over
+
+Numeric ID of the blog.
+
+=back
 
 =head3 C<title>
 
@@ -246,7 +269,15 @@ The human-readable, SEO-friendly URL of the blog.
 
 =over
 
-The never-changing URL of the blog, based on its numeric ID.
+URL of the blog based on its numeric ID. Never changes.
+
+=back
+
+=head3 C<post_url>
+
+=over
+
+URL for publishing new posts.
 
 =back
 
@@ -264,7 +295,7 @@ Egor Shipovalov, C<< <kogdaugodno at gmail.com> >>
 
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-net-google-api-blogger at rt.cpan.org>, or through
+Please report any bugs or feature requests to C<bug-webservice-blogger at rt.cpan.org>, or through
 the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=WebService-Blogger>.  I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
 
@@ -295,10 +326,6 @@ L<http://cpanratings.perl.org/d/WebService-Blogger>
 L<http://search.cpan.org/dist/WebService-Blogger/>
 
 =back
-
-
-=head1 ACKNOWLEDGEMENTS
-
 
 =head1 LICENSE AND COPYRIGHT
 

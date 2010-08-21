@@ -1,5 +1,8 @@
 Revision history for WebService-Blogger
 
+0.10    21 Aug 2010 Added support for credentials on ~/.www_blogger_rc,
+        improved entry creation workflog, improved tests and documentation.
+
 0.09    19 Aug 2010
         Added entry search, more tests, updated documentation. Renamed package to WebService::Blogger.
 
