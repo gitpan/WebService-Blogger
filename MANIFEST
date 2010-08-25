@@ -5,6 +5,7 @@ README
 lib/WebService/Blogger.pm
 lib/WebService/Blogger/Blog.pm
 lib/WebService/Blogger/Blog/Entry.pm
+lib/WebService/Blogger/AtomReading.pm
 t/00-load.t
 t/10-crud.t
 t/manifest.t

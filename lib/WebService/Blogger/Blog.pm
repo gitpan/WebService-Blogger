@@ -3,14 +3,15 @@ package WebService::Blogger::Blog;
 use warnings;
 use strict;
 
-use Any::Moose;
+use Moose;
 use XML::Simple ();
 use URI::Escape ();
-
 use WebService::Blogger::Blog::Entry;
 
+with 'WebService::Blogger::AtomReading';
 
-our $VERSION = '0.10';
+
+our $VERSION = '0.11';
 
 # Blog properties, non-updatable.
 has id         => ( is => 'ro', isa => 'Str', required => 1 );
@@ -41,18 +42,17 @@ sub BUILDARGS {
     my $class = shift;
     my %params = @_;
 
-    # Extract common values beforehand for convenience.
-    my $id = $params{source_xml_tree}{id}[0];
-    my $links = $params{source_xml_tree}{link};
+    my $tree = $params{source_xml_tree};
+    my $id = $tree->{id}[0];
 
     # Extract attributes from XML tree and return them to be set in the instance.
     return {
         id         => $id,
         numeric_id => $id =~ /(\d+)$/,
-        title      => $params{source_xml_tree}{title}[0]{content},
-        id_url     => (grep $_->{rel} eq 'self', @$links)[0]{href},
-        public_url => (grep $_->{rel} eq 'alternate', @$links)[0]{href},
-        post_url   => (grep $_->{rel} =~ /#post$/, @$links)[0]{href},
+        title      => $tree->{title}[0]{content},
+        id_url     => $class->get_link_href_by_rel($tree, 'self'),
+        public_url => $class->get_link_href_by_rel($tree, 'alternate'),
+        post_url   => $class->get_link_href_by_rel($tree, qr/#post$/),
         %params,
     };
 }

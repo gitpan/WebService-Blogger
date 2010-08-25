@@ -3,8 +3,10 @@ package WebService::Blogger::Blog::Entry;
 use warnings;
 use strict;
 
-use Any::Moose;
+use Moose;
 use XML::Simple ();
+
+with 'WebService::Blogger::AtomReading';
 
 
 # Properties that can be updated in existing entries.
@@ -29,7 +31,7 @@ has blog            => ( is => 'ro', isa => 'WebService::Blogger::Blog', require
 # Speed Moose up.
 __PACKAGE__->meta->make_immutable;
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 # Value of xmlns attribute in root element of created Atom entries.
 my $xml_ns_attr = 'http://www.w3.org/2005/Atom';
@@ -43,15 +45,6 @@ sub BUILDARGS {
     # Use shorter name for clarity.
     my $tree = $params{source_xml_tree};
 
-    my $get_link_by_rel = sub {
-        ## Returns value for 'href' attribute for link with given
-        ## 'ref' attribute, if it's present.
-        my ($rel_value) = @_;
-
-        my ($link) = grep $_->{rel} eq $rel_value, @{ $tree->{link} };
-        return $link->{href} if $link;
-     };
-
     # Extract attributes from the XML tree and return the to be set as
     # attributes.
     return {
@@ -61,9 +54,9 @@ sub BUILDARGS {
         updated    => $tree->{updated}[0],
         title      => $tree->{title}[0]{content},
         content    => $tree->{content}{content},
-        public_url => $get_link_by_rel->('alternate'),
-        id_url     => $get_link_by_rel->('self'),
-        edit_url   => $get_link_by_rel->('edit'),
+        public_url => $class->get_link_href_by_rel($tree, 'alternate'),
+        id_url     => $class->get_link_href_by_rel($tree, 'self'),
+        edit_url   => $class->get_link_href_by_rel($tree, 'edit'),
         categories => [ map $_->{term}, @{ $tree->{category} || [] } ],
         %params,
     };

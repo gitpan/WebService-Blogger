@@ -35,7 +35,7 @@ has ua => (
 # Speed Moose up.
 __PACKAGE__->meta->make_immutable;
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 
 sub BUILDARGS {
@@ -162,7 +162,7 @@ WebService::Blogger - Interface to Google's Blogger service
 
 =head1 VERSION
 
-Version 0.09
+Version 0.11
 
 =cut
 
@@ -241,7 +241,7 @@ Egor Shipovalov, C<< <kogdaugodno at gmail.com> >>
 
 =head1 BUGS
 
-Deletion of entries is currently not supported.
+Comments are currently not supported.
 
 Please report any bugs or feature requests to C<bug-webservice-blogger at rt.cpan.org>, or through
 the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=WebService-Blogger>.  I will be notified, and then you'll

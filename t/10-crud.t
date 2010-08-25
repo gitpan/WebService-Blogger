@@ -22,7 +22,7 @@ sub entry_props_set_ok {
 
 # Only run network tests if Blogger access credentials are specified in the environment.
 plan(
-    $ENV{TEST_BLOGGER_LOGIN_ID} || -s WebService::Blogger->creds_file_name ?
+    $ENV{TEST_BLOGGER_BLOG_ID} || -s WebService::Blogger->creds_file_name ?
         ( tests => 15 ) :
         ( skip_all => 'To run live tests, set TEST_BLOGGER_LOGIN_ID, TEST_BLOGGER_PASSWORD '
                       . 'environment variables, or create ~/.www_blogger_rc.'
@@ -30,10 +30,10 @@ plan(
 );
 
 # Authenticate.
-my $blogger = WebService::Blogger->new(
-    login_id   => $ENV{TEST_BLOGGER_LOGIN_ID},
-    password   => $ENV{TEST_BLOGGER_PASSWORD},
-);
+my %creds;
+$creds{login_id} = $ENV{TEST_BLOGGER_LOGIN_ID} if $ENV{TEST_BLOGGER_LOGIN_ID};
+$creds{password} = $ENV{TEST_BLOGGER_PASSWORD} if $ENV{TEST_BLOGGER_PASSWORD};
+my $blogger = WebService::Blogger->new(%creds);
 ok($blogger, 'Authenticated');
 
 # Retrieve all blogs.
@@ -41,8 +41,8 @@ my @blogs = $blogger->blogs;
 ok(@blogs > 0, 'Blogs retrieved');
 
 SKIP: {
-    skip 'TEST_BLOG_ID environment variable not set', 13
-        unless $ENV{TEST_BLOG_ID};
+    skip 'TEST_BLOGGER_BLOG_ID environment variable not set', 13
+        unless $ENV{TEST_BLOGGER_BLOG_ID};
 
     # Retrieved entries from test blog.
     my ($blog) = grep $_->numeric_id == $ENV{TEST_BLOGGER_BLOG_ID}, @blogs;
