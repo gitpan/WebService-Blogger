@@ -1,5 +1,6 @@
 Revision history for WebService-Blogger
 
+0.13    17 Sep 2010 Fixed bug in build file.
 0.12    17 Sep 2010 A a bugfix, made Moose a dependency.
 
 0.11    25 Aug 2010 Factored out XML parsing routine into a role for
@@ -26,7 +27,7 @@ Revision history for WebService-Blogger
 
 0.03    17 Aug 2010
         Included dependencies in the packaging.
-        
+
 0.02    17 Aug 2010
         Improved performance and documentation.
 

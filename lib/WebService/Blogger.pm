@@ -34,7 +34,7 @@ has ua => (
 # Speed Moose up.
 __PACKAGE__->meta->make_immutable;
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 
 sub BUILDARGS {
@@ -169,7 +169,7 @@ WebService::Blogger - Interface to Google's Blogger service
 
 =head1 VERSION
 
-Version 0.11
+Version 0.13
 
 =cut
 

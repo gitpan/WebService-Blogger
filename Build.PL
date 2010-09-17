@@ -12,7 +12,7 @@ my $builder = Module::Build->new(
         'Test::Deep' => 0,
     },
     requires => {
-        'Any::Moose'            => 0,
+        'Moose'                 => 0,
         'LWP::UserAgent'        => 0,
         'HTTP::Request::Common' => 0,
         'XML::Simple'           => 0,
