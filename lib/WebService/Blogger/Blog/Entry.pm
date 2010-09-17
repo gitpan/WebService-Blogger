@@ -31,8 +31,6 @@ has blog            => ( is => 'ro', isa => 'WebService::Blogger::Blog', require
 # Speed Moose up.
 __PACKAGE__->meta->make_immutable;
 
-our $VERSION = '0.11';
-
 # Value of xmlns attribute in root element of created Atom entries.
 my $xml_ns_attr = 'http://www.w3.org/2005/Atom';
 

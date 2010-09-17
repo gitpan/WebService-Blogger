@@ -11,8 +11,6 @@ use WebService::Blogger::Blog::Entry;
 with 'WebService::Blogger::AtomReading';
 
 
-our $VERSION = '0.11';
-
 # Blog properties, non-updatable.
 has id         => ( is => 'ro', isa => 'Str', required => 1 );
 has numeric_id => ( is => 'ro', isa => 'Str', required => 1 );

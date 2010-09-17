@@ -1,7 +1,9 @@
 Revision history for WebService-Blogger
 
-0.11     25 Aug 2010 Factored out XML parsing routine into a role for
-         cleaner and more backward-compatible code.
+0.12    17 Sep 2010 A a bugfix, made Moose a dependency.
+
+0.11    25 Aug 2010 Factored out XML parsing routine into a role for
+        cleaner and more backward-compatible code.
 
 0.10    21 Aug 2010
         Added support for credentials on ~/.www_blogger_rc, improved entry

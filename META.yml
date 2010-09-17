@@ -16,16 +16,13 @@ name: WebService-Blogger
 provides:
   WebService::Blogger:
     file: lib/WebService/Blogger.pm
-    version: 0.11
+    version: 0.12
   WebService::Blogger::AtomReading:
     file: lib/WebService/Blogger/AtomReading.pm
-    version: 0.11
   WebService::Blogger::Blog:
     file: lib/WebService/Blogger/Blog.pm
-    version: 0.11
   WebService::Blogger::Blog::Entry:
     file: lib/WebService/Blogger/Blog/Entry.pm
-    version: 0.11
 requires:
   Any::Moose: 0
   HTTP::Request::Common: 0
@@ -33,4 +30,4 @@ requires:
   XML::Simple: 0
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.11
+version: 0.12

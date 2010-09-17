@@ -3,7 +3,7 @@ package WebService::Blogger;
 use warnings;
 use strict;
 
-use Any::Moose;
+use Moose;
 use LWP::UserAgent;
 use HTTP::Request::Common;
 use XML::Simple;
@@ -27,15 +27,14 @@ has blogs => (
 
 # LWP:::UserAgent instance for all requests during the session.
 has ua => (
-    builder       => sub { LWP::UserAgent->new },
-    lazy_build    => 1,
-    is            => 'ro',
+    lazy_build => 1,
+    is         => 'ro',
 );
 
 # Speed Moose up.
 __PACKAGE__->meta->make_immutable;
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 
 sub BUILDARGS {
@@ -101,6 +100,14 @@ sub creds_file_name {
 
     # Use the same name and format as WWW::Blogger::XML::API, for compatibility.
     return "$ENV{HOME}/.www_blogger_rc";
+}
+
+
+sub _build_ua {
+    ## Populares 'ua' property.
+    my $self = shift;
+
+    return LWP::UserAgent->new;
 }
 
 
