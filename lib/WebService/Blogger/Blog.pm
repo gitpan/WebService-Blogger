@@ -34,6 +34,8 @@ has entries => (
 # Speed Moose up.
 __PACKAGE__->meta->make_immutable;
 
+our $VERSION = '0.14';
+
 
 sub BUILDARGS {
     ## Parses source XML into initial attribute values.

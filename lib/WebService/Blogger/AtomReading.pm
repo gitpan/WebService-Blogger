@@ -6,6 +6,9 @@ use warnings;
 use Moose::Role;
 
 
+our $VERSION = '0.14';
+
+
 sub get_link_href_by_rel {
     ## Returns "href" attribute of the first element of type "link" in
     ## given tree generated from Atom entry using XML::Simple.
