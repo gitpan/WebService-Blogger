@@ -34,13 +34,15 @@ has ua => (
 # Speed Moose up.
 __PACKAGE__->meta->make_immutable;
 
-our $VERSION = '0.14';
+our $VERSION = '0.16';
 
 
 sub BUILDARGS {
     ## Loads credentials from credentials file.
     my $class = shift;
     my %attrs = @_;
+
+    return \%attrs if defined $attrs{login_id} && defined $attrs{password};
 
     # See if there's a file with login credentials and return if there isn't.
     my $creds_file_name
@@ -62,8 +64,10 @@ sub BUILDARGS {
 
     # Parse and return available credentials to be set as object attributes.
     my %parsed_creds = $creds_file_contents =~ /^(\S+)\s*=\s*(\S+)/gm;
-    $attrs{login_id} = $parsed_creds{username} if defined $parsed_creds{username};
-    $attrs{password} = $parsed_creds{password} if defined $parsed_creds{password};
+    $attrs{login_id} = $parsed_creds{username} if !defined $attrs{login_id}
+                                                  && defined $parsed_creds{username};
+    $attrs{password} = $parsed_creds{password} if !defined $attrs{password}
+                                                  && defined $parsed_creds{password};
     return \%attrs;
 }
 

@@ -20,4 +20,4 @@ requires:
   Moose::Role: 0
   URI::Escape: 0
   XML::Simple: 0
-version: 0.15
+version: 0.16
