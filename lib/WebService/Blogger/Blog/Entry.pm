@@ -10,8 +10,8 @@ with 'WebService::Blogger::AtomReading';
 
 
 # Properties that can be updated in existing entries.
-has title           => ( is => 'rw', isa => 'Str' );
-has content         => ( is => 'rw', isa => 'Str' );
+has title           => ( is => 'rw', isa => 'Maybe[Str]' );
+has content         => ( is => 'rw', isa => 'Maybe[Str]' );
 has categories      => ( is => 'rw', isa => 'ArrayRef[Str]', auto_deref => 1 );
 
 # Read-only properties.

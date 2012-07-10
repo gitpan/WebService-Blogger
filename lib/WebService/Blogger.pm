@@ -14,8 +14,8 @@ use WebService::Blogger::Blog;
 
 
 # Authentication credentials. Cannot be changed after object is created.
-has login_id   => ( is => 'ro', isa => 'Str', required => 1 );
-has password   => ( is => 'ro', isa => 'Str', required => 1 );
+has login_id        => ( is => 'ro', isa => 'Str');
+has password        => ( is => 'ro', isa => 'Str');
 
 # Blogs belonging to the account.
 has blogs => (
@@ -38,15 +38,20 @@ our $VERSION = '0.14';
 
 
 sub BUILDARGS {
-    ## Loads credentials from ~/.www_blogger_rc
+    ## Loads credentials from credentials file.
     my $class = shift;
+    my %attrs = @_;
 
-    # See if there's a file with login credentials and return if not.
-    my $creds_file_name = $class->creds_file_name;
-    return unless -s $creds_file_name;
+    # See if there's a file with login credentials and return if there isn't.
+    my $creds_file_name
+        = $attrs{creds_file_name}
+          || $ENV{WEBSERVICE_BLOGGER_CONFIG}
+          || "$ENV{HOME}/.www_blogger_rc";
 
-    # Don't allow it to be readable or writable by others, for security reasons.
-    die "$creds_file_name is accessible by others. Please run chmod 0600 $creds_file_name"
+    return \%attrs unless -s $creds_file_name;
+
+    die "Credentials file \"$creds_file_name\" is accessible by others. "
+        . 'Please make it readable by the owner only, for security reasons.'
         if stat($creds_file_name)->mode & 07777 != 0600;
 
     # Read file contents into a string.
@@ -56,7 +61,6 @@ sub BUILDARGS {
     close $creds_fh;
 
     # Parse and return available credentials to be set as object attributes.
-    my %attrs;
     my %parsed_creds = $creds_file_contents =~ /^(\S+)\s*=\s*(\S+)/gm;
     $attrs{login_id} = $parsed_creds{username} if defined $parsed_creds{username};
     $attrs{password} = $parsed_creds{password} if defined $parsed_creds{password};
@@ -223,10 +227,13 @@ add, update or delete entries.
 
 Connects to Blogger, authenticates and returns object representing
 Blogger account. The credentials can be given in named parameters or
-read from ~/.www_blogger_rc , which has contents like this:
+read from a configuration file which has contents like this:
 
  username = someone@gmail.com
  password = somepassword
+
+The file is first searched for as $ENV{WEBSERVICE_BLOGGER_CONFIG} then
+as "$ENV{HOME}/.www_blogger_rc". On Windows, please use the first format.
 
 The file must not be accessible by anyone but the owner. Module will
 die with an error if it is. Authentication token received will be
