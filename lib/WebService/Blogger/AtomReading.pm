@@ -1,12 +1,9 @@
 package WebService::Blogger::AtomReading;
-
+$WebService::Blogger::AtomReading::VERSION = '0.17';
 use strict;
 use warnings;
 
 use Moose::Role;
-
-
-our $VERSION = '0.14';
 
 
 sub get_link_href_by_rel {

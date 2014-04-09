@@ -1,5 +1,5 @@
 package WebService::Blogger;
-
+$WebService::Blogger::VERSION = '0.17';
 use warnings;
 use strict;
 
@@ -9,6 +9,7 @@ use HTTP::Request::Common;
 use XML::Simple;
 use File::stat;
 use Data::Dumper;
+use Encode ();
 
 use WebService::Blogger::Blog;
 
@@ -33,8 +34,6 @@ has ua => (
 
 # Speed Moose up.
 __PACKAGE__->meta->make_immutable;
-
-our $VERSION = '0.16';
 
 
 sub BUILDARGS {
@@ -143,7 +142,8 @@ sub http_put {
     my $self = shift;
     my ($url, $content) = @_;
 
-    my $request = HTTP::Request->new(PUT => $url, $self->ua->default_headers, $content);
+    my $request = HTTP::Request->new(PUT => $url, $self->ua->default_headers,
+                                     Encode::encode_utf8($content));
     return $self->ua->request($request);
 }
 
@@ -174,10 +174,6 @@ __END__
 =head1 NAME
 
 WebService::Blogger - Interface to Google's Blogger service
-
-=head1 VERSION
-
-Version 0.14
 
 =cut
 

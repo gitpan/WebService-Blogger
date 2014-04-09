@@ -1,5 +1,5 @@
 package WebService::Blogger::Blog::Entry;
-
+$WebService::Blogger::Blog::Entry::VERSION = '0.17';
 use warnings;
 use strict;
 
@@ -30,8 +30,6 @@ has blog            => ( is => 'ro', isa => 'WebService::Blogger::Blog', require
 
 # Speed Moose up.
 __PACKAGE__->meta->make_immutable;
-
-our $VERSION = '0.14';
 
 # Value of xmlns attribute in root element of created Atom entries.
 my $xml_ns_attr = 'http://www.w3.org/2005/Atom';
@@ -111,6 +109,7 @@ sub as_xml {
         content => $self->content,
         type    => 'html',
     };
+
     $self->source_xml_tree->{category} = [
         map {
                 scheme => 'http://www.blogger.com/atom/ns#',

@@ -1,11 +1,12 @@
 package WebService::Blogger::Blog;
-
+$WebService::Blogger::Blog::VERSION = '0.17';
 use warnings;
 use strict;
 
 use Moose;
 use XML::Simple ();
 use URI::Escape ();
+use Encode ();
 use WebService::Blogger::Blog::Entry;
 
 with 'WebService::Blogger::AtomReading';
@@ -33,8 +34,6 @@ has entries => (
 
 # Speed Moose up.
 __PACKAGE__->meta->make_immutable;
-
-our $VERSION = '0.14';
 
 
 sub BUILDARGS {
@@ -131,7 +130,7 @@ sub add_entry {
     my $response = $self->blogger->http_post(
         $self->post_url,
         'Content-Type' => 'application/atom+xml',
-        Content        => $creation_xml,
+        Content        => Encode::encode_utf8($creation_xml),
     );
     die 'Unable to add entry to blog: ' . $response->status_line unless $response->is_success;
 

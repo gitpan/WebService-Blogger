@@ -5,6 +5,7 @@ use Test::More;
 use Test::Deep;
 
 use WebService::Blogger;
+use utf8;
 
 
 sub entry_props_set_ok {
@@ -51,7 +52,7 @@ SKIP: {
 
     # Create new entry.
     my %new_entry_props = (
-        title      => 'New entry',
+        title      => 'Новый заголовок',
         content    => 'New entry content',
         categories => [ 'Cats', 'aren\'t always', 'black' ],
     );
@@ -62,7 +63,7 @@ SKIP: {
 
     # Update the entry.
     my %updated_entry_props = (
-        title      => 'Updated entry',
+        title      => 'Изменённый заголовок',
         content    => 'Updated entry content',
         categories => [ "$new_entry", 'Some', 'black' ],
     );

@@ -2,17 +2,22 @@
 abstract: "Interface to Google's Blogger service"
 author:
   - 'Egor Shipovalov <kogdaugodno@gmail.com>'
-build_requires: {}
+build_requires:
+  Test::Deep: 0
+  Test::More: 0
+  utf8: 0
 configure_requires:
   ExtUtils::MakeMaker: 6.30
 dynamic_config: 0
-generated_by: 'Dist::Zilla version 4.300020, CPAN::Meta::Converter version 2.120921'
+generated_by: 'Dist::Zilla version 5.015, CPAN::Meta::Converter version 2.140640'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
   version: 1.4
 name: WebService-Blogger
 requires:
+  Data::Dumper: 0
+  Encode: 0
   File::stat: 0
   HTTP::Request::Common: 0
   LWP::UserAgent: 0
@@ -20,4 +25,6 @@ requires:
   Moose::Role: 0
   URI::Escape: 0
   XML::Simple: 0
-version: 0.16
+  strict: 0
+  warnings: 0
+version: 0.17
