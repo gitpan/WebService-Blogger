@@ -1,5 +1,5 @@
 package WebService::Blogger::Blog::Entry;
-$WebService::Blogger::Blog::Entry::VERSION = '0.17';
+$WebService::Blogger::Blog::Entry::VERSION = '0.18';
 use warnings;
 use strict;
 
@@ -27,12 +27,8 @@ has public_url      => ( is => 'ro', isa => 'Str' );
 has source_xml_tree => ( is => 'ro', isa => 'HashRef', default => sub { {} }, required => 1 );
 has blog            => ( is => 'ro', isa => 'WebService::Blogger::Blog', required => 1 );
 
-
 # Speed Moose up.
 __PACKAGE__->meta->make_immutable;
-
-# Value of xmlns attribute in root element of created Atom entries.
-my $xml_ns_attr = 'http://www.w3.org/2005/Atom';
 
 
 sub BUILDARGS {
@@ -45,6 +41,7 @@ sub BUILDARGS {
 
     # Extract attributes from the XML tree and return the to be set as
     # attributes.
+
     return {
         id         => $tree->{id}[0],
         author     => $tree->{author}[0]{name}[0],
@@ -68,7 +65,6 @@ sub xml_for_creation {
 
     # Build data structure to generate XML from.
     my %xml_tree = (
-        xmlns => $xml_ns_attr,
         title => [ {
             content => $props{title},
             type    => 'text',
@@ -85,19 +81,32 @@ sub xml_for_creation {
                 @{ $props{categories} || [] }
         ],
     );
+    $class->add_xml_ns(\%xml_tree);
 
     # Convert data tree to XML.
     return XML::Simple::XMLout(\%xml_tree, RootName => 'entry');
 }
 
 
+sub add_xml_ns {
+    ## Adds XML namespace attributes to the given XML hash tree.
+    my $class = shift;
+    my ($dest) = @_;
+
+    my %xml_ns = (
+        ''     => 'http://www.w3.org/2005/Atom',
+        ':thr' => 'http://purl.org/rss/1.0/modules/threading/',
+        ':gd'  => 'http://schemas.google.com/g/2005', 
+    );
+    while (my ($postfix, $url) = each %xml_ns) {
+        $dest->{"xmlns$postfix"} = $url;
+    }
+}
+
+
 sub as_xml {
     ## Returns XML string representing the entry.
     my $self = shift;
-
-    # Add namespace specifiers to the root element, which appears to be undocumented requirement.
-    $self->source_xml_tree->{xmlns} = $xml_ns_attr;
-    $self->source_xml_tree->{'xmlns:thr'} = 'http://purl.org/rss/1.0/modules/threading/' if $self->id;
 
     # Place attribute values into original data tree. Don't generate an Atom entry anew as
     # Blogger wants us to preserve all original data when updating posts.
@@ -109,7 +118,6 @@ sub as_xml {
         content => $self->content,
         type    => 'html',
     };
-
     $self->source_xml_tree->{category} = [
         map {
                 scheme => 'http://www.blogger.com/atom/ns#',
@@ -117,6 +125,7 @@ sub as_xml {
             },
             $self->categories
     ];
+    $self->add_xml_ns($self->source_xml_tree);
 
     # Convert data tree to XML.
     return XML::Simple::XMLout($self->source_xml_tree, RootName => 'entry');

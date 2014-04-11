@@ -1,5 +1,7 @@
 Revision history for WebService-Blogger
 
+0.18    11 April 2014 Fixed issue with XML namespaces in Blogger API calls.
+
 0.17    09 April 2014 Improved Unicode support.
 
 0.16    10 July 2012 Fixed a bug in credentials handling.
