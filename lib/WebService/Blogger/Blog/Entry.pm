@@ -1,5 +1,5 @@
 package WebService::Blogger::Blog::Entry;
-$WebService::Blogger::Blog::Entry::VERSION = '0.18';
+$WebService::Blogger::Blog::Entry::VERSION = '0.19';
 use warnings;
 use strict;
 

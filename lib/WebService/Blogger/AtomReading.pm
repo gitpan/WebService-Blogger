@@ -1,5 +1,5 @@
 package WebService::Blogger::AtomReading;
-$WebService::Blogger::AtomReading::VERSION = '0.18';
+$WebService::Blogger::AtomReading::VERSION = '0.19';
 use strict;
 use warnings;
 

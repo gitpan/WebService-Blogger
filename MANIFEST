@@ -15,4 +15,3 @@ t/00-load.t
 t/10-crud.t
 t/manifest.t
 t/pod.t
-test.pl
