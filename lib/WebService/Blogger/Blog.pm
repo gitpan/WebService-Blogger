@@ -1,5 +1,5 @@
 package WebService::Blogger::Blog;
-$WebService::Blogger::Blog::VERSION = '0.19';
+$WebService::Blogger::Blog::VERSION = '0.20';
 use warnings;
 use strict;
 
@@ -13,18 +13,19 @@ with 'WebService::Blogger::AtomReading';
 
 
 # Blog properties, non-updatable.
-has id         => ( is => 'ro', isa => 'Str', required => 1 );
-has numeric_id => ( is => 'ro', isa => 'Str', required => 1 );
-has title      => ( is => 'ro', isa => 'Str', required => 1 );
-has public_url => ( is => 'ro', isa => 'Str', required => 1 );
-has id_url     => ( is => 'ro', isa => 'Str', required => 1 );
-has post_url   => ( is => 'ro', isa => 'Str', required => 1 );
+has id          => ( is => 'ro', isa => 'Str', required => 1 );
+has numeric_id  => ( is => 'ro', isa => 'Str', required => 1 );
+has title       => ( is => 'ro', isa => 'Str', required => 1 );
+has public_url  => ( is => 'ro', isa => 'Str', required => 1 );
+has id_url      => ( is => 'ro', isa => 'Str', required => 1 );
+has post_url    => ( is => 'ro', isa => 'Str', required => 1 );
 
 # Service attributes.
 has source_xml_tree => ( is => 'ro', isa => 'HashRef', required => 1 );
 has blogger         => ( is => 'ro', isa => 'WebService::Blogger', required => 1 );
 
 # Blog entries.
+has max_results => ( is => 'rw', isa => 'Num', required => 1, default => 30, );
 has entries => (
     is         => 'rw',
     isa        => 'ArrayRef[WebService::Blogger::Blog::Entry]',
@@ -98,15 +99,19 @@ sub search_entries {
     my %req_args = (
         alt => 'atom',
     );
-    foreach (keys %params_to_req_args_map) {
-        $req_args{$params_to_req_args_map{$_}} = $params{$_} if exists $params{$_};
+    foreach my $param (keys %params_to_req_args_map) {
+        my $value = $self->$param if $self->meta->has_attribute($param);
+        $value = $params{$param} if exists $params{$param};
+        $req_args{$params_to_req_args_map{$param}} = $value if defined $value;
     }
     if (my $sort_mode = $params{sort_by}) {
         $req_args{orderby} = $sort_mode_map{$sort_mode};
     }
 
     # Execute request and parse the response.
-    my $response = $self->blogger->http_get($url, %req_args);
+    my $uri_obj = URI->new($url);
+    $uri_obj->query_form(%req_args);
+    my $response = $self->blogger->http_get($uri_obj);
     my $response_tree = XML::Simple::XMLin($response->content, ForceArray => 1);
 
     # Return list of entry objects constructed from list of hashes in parsed data.

@@ -1,5 +1,7 @@
 Revision history for WebService-Blogger
 
+0.20    13 June 2014 Fix request parameter passing
+
 0.19    11 April 2014 Remove extra debugging script
 
 0.18    11 April 2014 Fixed issue with XML namespaces in Blogger API calls.
